@@ -736,14 +736,19 @@ function delTemplate(i){
  * ================================================================= */
 function logNothing(){ /* placeholder for future server-side logging */ }
 
+function hookPostUrl(hook){
+  /* wait=true makes Discord return the created message (with its id)
+     instead of a bare 204, so the "delete from Discord" action can work */
+  return hook.url.split("?")[0] + "?wait=true";
+}
 async function postTo(hook, opts){
-  var res = await fetch(hook.url, { method:"POST", body:opts.body });
+  var res = await fetch(hookPostUrl(hook), { method:"POST", body:opts.body });
   if (res.status === 429){
     var j = await res.json().catch(function(){ return {}; });
     var wait = Math.min(Math.ceil((j.retry_after || 2) * 1000) + 300, 9000);
     toast("Discord রেট লিমিট — " + Math.ceil(wait/1000) + "s অপেক্ষা...");
     await new Promise(function(r){ setTimeout(r, wait); });
-    res = await fetch(hook.url, { method:"POST", body:opts.body });
+    res = await fetch(hookPostUrl(hook), { method:"POST", body:opts.body });
   }
   return res;
 }
