@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CHEAT 777 — Post Panel</title>
+<style>
+  :root{
+    --bg:#1e1f22; --bg2:#2b2d31; --bg3:#313338; --bg4:#383a40;
+    --txt:#dbdee1; --txt2:#b5bac1; --txt3:#949ba4;
+    --brand:#5865f2; --brand-h:#4752c4; --ok:#23a559; --err:#f23f43; --warn:#f0b232;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:"gg sans","Segoe UI",Helvetica,Arial,sans-serif;
+    background:var(--bg3); color:var(--txt); min-height:100vh;
+    display:flex; flex-direction:column;
+  }
+  header{
+    background:var(--bg2); padding:10px 16px; display:flex; align-items:center;
+    gap:12px; border-bottom:1px solid #1f2023; position:sticky; top:0; z-index:5;
+  }
+  .logo{
+    width:34px;height:34px;border-radius:50%;background:var(--brand);
+    display:grid;place-items:center;font-weight:800;font-size:15px;color:#fff;flex:none
+  }
+  header h1{font-size:16px;font-weight:700}
+  header .sub{font-size:11.5px;color:var(--txt3)}
+  .grow{flex:1}
+  button{font-family:inherit;cursor:pointer;border:0;border-radius:4px;font-size:13.5px}
+  .btn{background:var(--brand);color:#fff;padding:8px 16px;font-weight:600}
+  .btn:hover{background:var(--brand-h)}
+  .btn:disabled{opacity:.45;cursor:not-allowed}
+  .btn-ghost{background:transparent;color:var(--txt2);padding:7px 11px}
+  .btn-ghost:hover{background:var(--bg4);color:var(--txt)}
+  .btn-danger{background:transparent;color:var(--err);padding:6px 10px}
+  .btn-danger:hover{background:rgba(242,63,67,.12)}
+
+  main{flex:1;display:flex;gap:0;min-height:0}
+  /* ---- channel list ---- */
+  .side{
+    width:230px;background:var(--bg2);padding:14px 8px;overflow-y:auto;flex:none;
+    border-right:1px solid #1f2023
+  }
+  .side h2{font-size:11px;letter-spacing:.6px;color:var(--txt3);text-transform:uppercase;padding:0 8px 8px}
+  .ch{
+    display:flex;align-items:center;gap:8px;padding:8px 9px;border-radius:5px;
+    color:var(--txt3);cursor:pointer;font-size:14px;margin-bottom:2px
+  }
+  .ch:hover{background:var(--bg4);color:var(--txt2)}
+  .ch.on{background:#404249;color:#fff}
+  .ch .hash{color:var(--txt3);font-weight:700}
+  .ch .name{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .side .empty{color:var(--txt3);font-size:12.5px;padding:8px;line-height:1.5}
+
+  /* ---- composer ---- */
+  .center{flex:1;display:flex;flex-direction:column;min-width:0}
+  .chanbar{
+    padding:11px 16px;background:var(--bg2);border-bottom:1px solid #1f2023;
+    display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px
+  }
+  .scroll{flex:1;overflow-y:auto;padding:16px}
+  .previews{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px}
+  .pv{
+    position:relative;background:var(--bg2);border:1px solid #1f2023;border-radius:8px;
+    padding:8px 10px;font-size:12.5px;color:var(--txt2);max-width:190px
+  }
+  .pv img{width:100%;height:74px;object-fit:cover;border-radius:5px;margin-bottom:6px;display:block}
+  .pv .fn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .pv .sz{color:var(--txt3);font-size:11px}
+  .pv .x{
+    position:absolute;top:-7px;right:-7px;width:20px;height:20px;border-radius:50%;
+    background:var(--err);color:#fff;font-size:12px;line-height:20px;text-align:center
+  }
+  .composer{background:var(--bg4);border-radius:8px;padding:10px 12px}
+  .composer textarea{
+    width:100%;background:transparent;border:0;outline:0;resize:none;color:var(--txt);
+    font-family:inherit;font-size:15px;line-height:1.45;max-height:190px;min-height:24px
+  }
+  .crow{display:flex;align-items:center;gap:6px;margin-top:6px}
+  .icon{
+    width:32px;height:32px;border-radius:5px;background:transparent;color:var(--txt2);
+    font-size:18px;display:grid;place-items:center
+  }
+  .icon:hover{background:#3d4046;color:var(--txt)}
+  .hint{color:var(--txt3);font-size:11.5px;margin-left:6px}
+  .sendbtn{background:var(--brand);color:#fff;width:34px;height:32px;border-radius:5px;font-size:15px}
+  .sendbtn:hover{background:var(--brand-h)}
+  .sendbtn:disabled{opacity:.4;cursor:not-allowed}
+
+  /* ---- log ---- */
+  .logbar{
+    padding:8px 16px;background:var(--bg2);border-top:1px solid #1f2023;
+    display:flex;align-items:center;gap:10px;font-size:12px;color:var(--txt3)
+  }
+  .log{max-height:132px;overflow-y:auto;padding:8px 16px 14px;background:var(--bg2)}
+  .li{font-size:12.5px;padding:3px 0;color:var(--txt2);display:flex;gap:8px}
+  .li b{color:var(--txt3);font-weight:600;flex:none;font-variant-numeric:tabular-nums}
+  .li.ok span{color:var(--ok)} .li.er span{color:var(--err)}
+
+  /* ---- modal ---- */
+  .mask{
+    position:fixed;inset:0;background:rgba(0,0,0,.72);display:none;
+    align-items:center;justify-content:center;z-index:20;padding:16px
+  }
+  .mask.show{display:flex}
+  .modal{background:var(--bg3);border-radius:9px;width:100%;max-width:430px;padding:20px}
+  .modal h3{font-size:18px;margin-bottom:5px}
+  .modal p{font-size:12.5px;color:var(--txt3);margin-bottom:14px;line-height:1.5}
+  label{display:block;font-size:11.5px;font-weight:700;color:var(--txt2);text-transform:uppercase;margin:11px 0 5px}
+  input[type=text],input[type=url]{
+    width:100%;background:var(--bg);border:1px solid #1f2023;border-radius:4px;
+    padding:9px 10px;color:var(--txt);font-family:inherit;font-size:14px;outline:0
+  }
+  input:focus{border-color:var(--brand)}
+  .row{display:flex;gap:8px;justify-content:flex-end;margin-top:17px}
+
+  /* ---- toast ---- */
+  #toast{
+    position:fixed;bottom:20px;left:50%;transform:translateX(-50%);
+    background:var(--bg2);border-left:4px solid var(--brand);padding:11px 16px;
+    border-radius:5px;font-size:13.5px;z-index:40;display:none;box-shadow:0 8px 24px rgba(0,0,0,.5)
+  }
+  #toast.ok{border-color:var(--ok)} #toast.err{border-color:var(--err)}
+  .spin{display:inline-block;width:12px;height:12px;border:2px solid rgba(255,255,255,.35);
+    border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite;vertical-align:-2px}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  @media(max-width:720px){ .side{display:none} }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">7</div>
+  <div>
+    <h1>CHEAT 777 — Post Panel</h1>
+    <div class="sub">যা লিখবে / যে ফাইল দেবে — সেটাই চ্যানেলে পোস্ট হবে</div>
+  </div>
+  <div class="grow"></div>
+  <button class="btn-ghost" onclick="openModal()">⚙ Webhook সেটিংস</button>
+</header>
+
+<main>
+  <aside class="side">
+    <h2>চ্যানেল</h2>
+    <div id="chList"></div>
+  </aside>
+
+  <section class="center">
+    <div class="chanbar"><span style="color:var(--txt3);font-weight:800">#</span><span id="chName">—</span></div>
+
+    <div class="scroll">
+      <div class="previews" id="pv"></div>
+      <div class="composer">
+        <textarea id="ta" rows="1" placeholder="এখানে পোস্টের টেক্সট লেখো..."></textarea>
+        <div class="crow">
+          <button class="icon" title="ফাইল / ছবি আট্যাচ করো" onclick="fileInput.click()">➕</button>
+          <button class="icon" title="এমোজি" onclick="emoji()">😀</button>
+          <span class="hint">Enter = পোস্ট • Shift+Enter = নতুন লাইন</span>
+          <div class="grow"></div>
+          <button class="sendbtn" id="sendBtn" title="পোস্ট করো" onclick="send()">➤</button>
+        </div>
+        <input type="file" id="fileInput" multiple hidden>
+      </div>
+      <p class="hint" style="margin:9px 2px 0">সর্বোচ্চ ১০টি ফাইল, প্রতিটি সর্বোচ্চ 25 MB (Discord-এর নিয়ম)। ছবি, ভিডিও, ZIP — যেকোনো ফাইল যাবে।</p>
+    </div>
+
+    <div class="logbar"><b>পাঠানো পোস্ট</b><div class="grow"></div><button class="btn-ghost" onclick="clearLog()">মুছে ফেলো</button></div>
+    <div class="log" id="log"><div class="li" style="color:var(--txt3)">এখনো কিছু পাঠানো হয়নি।</div></div>
+  </section>
+</main>
+
+<!-- settings modal -->
+<div class="mask" id="mask">
+  <div class="modal">
+    <h3>Webhook সেটিংস</h3>
+    <p>Discord সার্ভারের <b>Settings → Integrations → Webhooks</b> থেকে URL কপি করে এখানে বসাও। প্রতিটি চ্যানেলের জন্য আলাদা webhook বানাতে পারো — তাহলে সাইডবারে সব চ্যানেল দেখাবে।</p>
+    <label>চ্যানেলের নাম (শুধু তোমার জন্য)</label>
+    <input type="text" id="mName" placeholder="যেমন: 🆓┆𝔽ℝ𝔼𝔼-𝐏𝐀𝐍𝐄𝐋">
+    <label>Webhook URL</label>
+    <input type="url" id="mUrl" placeholder="https://discord.com/api/webhooks/...">
+    <div class="row">
+      <button class="btn-danger" id="mDel" onclick="delHook()">মুছে ফেলো</button>
+      <div class="grow"></div>
+      <button class="btn-ghost" onclick="closeModal()">বাতিল</button>
+      <button class="btn" onclick="saveHook()">সেভ করো</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+"use strict";
+/* ------------------------------------------------------------------ *
+ *  Storage
+ * ------------------------------------------------------------------ */
+var KEY = "cp777_webhooks_v1", AK = "cp777_active_v1";
+var hooks = [], active = 0, files = [], sending = false, editIdx = -1;
+
+var DEFAULT_HOOKS = [{
+  name: "🆓┆𝔽ℝ𝔼𝔼-𝐏𝐀𝐍𝐄𝐋",
+  url: "WEBHOOK_URL_PLACEHOLDER"
+}];
+
+function load() {
+  try { hooks = JSON.parse(localStorage.getItem(KEY) || "null"); } catch (e) { hooks = null; }
+  if (!Array.isArray(hooks) || !hooks.length) {
+    hooks = JSON.parse(JSON.stringify(DEFAULT_HOOKS));
+    if (hooks[0].url.indexOf("WEBHOOK_URL") !== -1) hooks = [];
+  }
+  active = parseInt(localStorage.getItem(AK) || "0", 10);
+  if (isNaN(active) || active < 0 || active >= hooks.length) active = 0;
+}
+function save() {
+  localStorage.setItem(KEY, JSON.stringify(hooks));
+  localStorage.setItem(AK, String(active));
+}
+
+/* ------------------------------------------------------------------ *
+ *  UI helpers
+ * ------------------------------------------------------------------ */
+var toastT = null;
+function toast(msg, kind) {
+  var t = document.getElementById("toast");
+  t.textContent = msg;
+  t.className = kind || "";
+  t.style.display = "block";
+  clearTimeout(toastT);
+  toastT = setTimeout(function () { t.style.display = "none"; }, 3200);
+}
+function fmtSize(b) {
+  if (b < 1024) return b + " B";
+  if (b < 1048576) return (b / 1024).toFixed(1) + " KB";
+  if (b < 1073741824) return (b / 1048576).toFixed(1) + " MB";
+  return (b / 1073741824).toFixed(2) + " GB";
+}
+function esc(s) {
+  return String(s).replace(/[&<>"']/g, function (c) {
+    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+  });
+}
+
+/* ------------------------------------------------------------------ *
+ *  Channel sidebar
+ * ------------------------------------------------------------------ */
+function renderChannels() {
+  var box = document.getElementById("chList");
+  if (!hooks.length) {
+    box.innerHTML = '<div class="empty">এখনো কোনো webhook সেট হয়নি।<br>উপরে <b>⚙ Webhook সেটিংস</b> এ গিয়ে URL বসাও।</div>';
+    document.getElementById("chName").textContent = "—";
+    return;
+  }
+  var html = "";
+  for (var i = 0; i < hooks.length; i++) {
+    html += '<div class="ch' + (i === active ? " on" : "") + '" onclick="pick(' + i + ')">'
+          + '<span class="hash">#</span><span class="name">' + esc(hooks[i].name || "নামহীন") + "</span></div>";
+  }
+  box.innerHTML = html;
+  document.getElementById("chName").textContent = hooks[active] ? (hooks[active].name || "") : "—";
+}
+function pick(i) { active = i; save(); renderChannels(); }
+
+/* ------------------------------------------------------------------ *
+ *  Composer
+ * ------------------------------------------------------------------ */
+var ta = document.getElementById("ta");
+function autosize() {
+  ta.style.height = "auto";
+  ta.style.height = Math.min(ta.scrollHeight, 190) + "px";
+}
+ta.addEventListener("input", autosize);
+ta.addEventListener("keydown", function (e) {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); send(); }
+});
+
+var fileInput = document.getElementById("fileInput");
+fileInput.addEventListener("change", function () {
+  var list = Array.prototype.slice.call(fileInput.files);
+  for (var i = 0; i < list.length; i++) {
+    if (files.length >= 10) { toast("সর্বোচ্চ ১০টি ফাইল", "err"); break; }
+    if (list[i].size > 25 * 1048576) { toast('"' + list[i].name + '" ২৫ MB এর বেশি — যাবে না', "err"); continue; }
+    files.push(list[i]);
+  }
+  fileInput.value = "";
+  renderPreviews();
+});
+function dropFile(i) { files.splice(i, 1); renderPreviews(); }
+
+function renderPreviews() {
+  var box = document.getElementById("pv");
+  if (!files.length) { box.innerHTML = ""; return; }
+  var html = "";
+  files.forEach(function (f, i) {
+    var isImg = /^image\//.test(f.type);
+    var img = "";
+    if (isImg) {
+      try { img = '<img src="' + URL.createObjectURL(f) + '" alt="">'; } catch (e) {}
+    }
+    html += '<div class="pv"><div class="x" title="বাদ দাও" onclick="dropFile(' + i + ')">×</div>'
+          + img + '<div class="fn" title="' + esc(f.name) + '">' + esc(f.name) + "</div>"
+          + '<div class="sz">' + fmtSize(f.size) + "</div></div>";
+  });
+  box.innerHTML = html;
+}
+
+function emoji() {
+  var e = ["🔥","⚡","💎","🎁","✅","😂","😍","👇","❗","📢","🎮","🏆","💥","❤️","🙌"];
+  ta.value += e[Math.floor(Math.random() * e.length)];
+  ta.focus(); autosize();
+}
+
+/* ------------------------------------------------------------------ *
+ *  Send
+ * ------------------------------------------------------------------ */
+function logLine(text, kind, time) {
+  var box = document.getElementById("log");
+  if (box.dataset.empty !== "1") { box.innerHTML = ""; box.dataset.empty = "1"; }
+  var d = document.createElement("div");
+  d.className = "li " + (kind || "");
+  d.innerHTML = "<b>" + (time || new Date().toLocaleTimeString("en-GB")) + "</b><span>" + esc(text) + "</span>";
+  box.insertBefore(d, box.firstChild);
+}
+function clearLog() {
+  var box = document.getElementById("log");
+  box.dataset.empty = "0";
+  box.innerHTML = '<div class="li" style="color:var(--txt3)">এখনো কিছু পাঠানো হয়নি।</div>';
+}
+
+async function send() {
+  if (sending) return;
+  var hook = hooks[active];
+  if (!hook || !hook.url) { toast("আগে Webhook সেট করো", "err"); openModal(); return; }
+
+  var text = ta.value.trim();
+  if (!text && !files.length) { toast("কিছু টেক্সট লেখো বা ফাইল আট্যাচ করো", "err"); return; }
+
+  var btn = document.getElementById("sendBtn");
+  sending = true;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spin"></span>';
+
+  try {
+    var payload = {};
+    if (text) payload.content = text;
+
+    var fd = new FormData();
+    fd.append("payload_json", JSON.stringify(payload));
+    files.forEach(function (f) { fd.append("files", f, f.name); });
+
+    var res = await fetch(hook.url, { method: "POST", body: fd });
+
+    if (res.status === 429) {
+      var j = await res.json().catch(function () { return {}; });
+      var wait = Math.min(Math.ceil((j.retry_after || 2) * 1000) + 250, 8000);
+      toast("Discord রেট লিমিট — " + Math.ceil(wait / 1000) + "s পরে আবার", "err");
+      await new Promise(function (r) { setTimeout(r, wait); });
+      res = await fetch(hook.url, { method: "POST", body: fd });
+    }
+
+    if (!res.ok) {
+      var body = await res.text().catch(function () { return ""; });
+      var why = res.status === 404
+        ? "Webhook ভুল/মুছে গেছে — নতুন URL বসাও"
+        : "Discord " + res.status + " " + body.slice(0, 120);
+      toast("পোস্ট যায়নি: " + why, "err");
+      logLine("ব্যর্থ (" + res.status + ") — " + (hook.name || ""), "er");
+      return;
+    }
+
+    toast("পোস্ট হয়ে গেছে ✅", "ok");
+    logLine((text ? text.slice(0, 55) : "") + (files.length ? "  📎 " + files.length + " file" : "") + "  →  " + (hook.name || ""), "ok");
+    ta.value = ""; autosize();
+    files = []; renderPreviews();
+
+  } catch (err) {
+    toast("নেটওয়ার্ক সমস্যা: " + err.message, "err");
+    logLine("ব্যর্থ — নেট সমস্যা", "er");
+  } finally {
+    sending = false;
+    btn.disabled = false;
+    btn.textContent = "➤";
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ *  Settings modal
+ * ------------------------------------------------------------------ */
+function openModal(i) {
+  editIdx = (typeof i === "number") ? i : -1;
+  var m = document.getElementById("mask");
+  if (editIdx >= 0) {
+    document.getElementById("mName").value = hooks[editIdx].name || "";
+    document.getElementById("mUrl").value = hooks[editIdx].url || "";
+    document.getElementById("mDel").style.display = "inline-block";
+  } else {
+    document.getElementById("mName").value = "";
+    document.getElementById("mUrl").value = "";
+    document.getElementById("mDel").style.display = "none";
+  }
+  m.classList.add("show");
+  document.getElementById("mUrl").focus();
+}
+function closeModal() { document.getElementById("mask").classList.remove("show"); }
+document.getElementById("mask").addEventListener("click", function (e) {
+  if (e.target === this) closeModal();
+});
+
+function saveHook() {
+  var n = document.getElementById("mName").value.trim();
+  var u = document.getElementById("mUrl").value.trim();
+  if (!/^https?:\/\/(canary\.|ptb\.)?discord(app)?\.com\/api\/webhooks\/\d+\/[\w-]+/.test(u)) {
+    toast("Discord webhook URL ঠিক নয়", "err"); return;
+  }
+  if (!n) { try { n = "চ্যানেল " + (hooks.length + 1); } catch (e) { n = "চ্যানেল"; } }
+  if (editIdx >= 0) { hooks[editIdx] = { name: n, url: u }; active = editIdx; }
+  else { hooks.push({ name: n, url: u }); active = hooks.length - 1; }
+  save(); renderChannels(); closeModal();
+  toast("সেভ হয়েছে ✅", "ok");
+  logLine("Webhook সেভ: " + n, "ok");
+}
+function delHook() {
+  if (editIdx < 0) return;
+  if (!confirm("এই webhook মুছে ফেলবে?")) return;
+  hooks.splice(editIdx, 1);
+  active = 0; save(); renderChannels(); closeModal();
+  toast("মুছে ফেলা হয়েছে", "ok");
+}
+
+/* drag & drop files straight onto the page */
+["dragover", "drop"].forEach(function (ev) {
+  document.addEventListener(ev, function (e) { e.preventDefault(); });
+});
+document.addEventListener("drop", function (e) {
+  var list = Array.prototype.slice.call((e.dataTransfer && e.dataTransfer.files) || []);
+  list.forEach(function (f) {
+    if (files.length >= 10) return;
+    if (f.size > 25 * 1048576) { toast('"' + f.name + '" ২৫ MB এর বেশি', "err"); return; }
+    files.push(f);
+  });
+  renderPreviews();
+});
+
+load();
+renderChannels();
+autosize();
+if (!hooks.length) { setTimeout(openModal, 350); }
+</script>
+</body>
+</html>
