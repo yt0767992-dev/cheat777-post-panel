@@ -410,14 +410,14 @@ input,textarea,select{font-family:inherit;outline:0}
  *  Storage
  * ================================================================= */
 var K = { h:"c777_h2", a:"c777_a2", m:"c777_m2", t:"c777_t2", d:"c777_d2" };
-var hooks = [], active = 0, files = [], history = [], templates = [], sending = false, editIdx = -1;
+var hooks = [], active = 0, files = [], posts = [], templates = [], sending = false, editIdx = -1;
 
 function get(k, fb){ try { var v = JSON.parse(localStorage.getItem(k)); return v===null?fb:v; } catch(e){ return fb; } }
 function set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
 
 function load(){
   hooks     = get(K.h, []) || [];
-  history   = get(K.m, []) || [];
+  posts   = get(K.m, []) || [];
   templates = get(K.t, []) || [];
   active    = parseInt(get(K.a, 0), 10);
   if (isNaN(active) || active < 0 || active >= hooks.length) active = 0;
@@ -505,14 +505,14 @@ function renderChannels(){
   });
   box.innerHTML = html;
   document.getElementById("chName").textContent = hooks[active] ? (hooks[active].name || "") : "—";
-  var n = history.filter(function(m){ return m.ch === active; }).length;
+  var n = posts.filter(function(m){ return m.ch === active; }).length;
   document.getElementById("chDesc").textContent = hooks[active] ? (n + " পোস্ট পাঠানো হয়েছে") : "";
   renderFeed();
 }
 function pick(i){ active = i; saveHooks(); renderChannels(); }
 
 /* =================================================================
- *  Message feed (history)
+ *  Message feed (posts)
  * ================================================================= */
 function attIcon(type){
   if (/^image\//.test(type||"")) return "🖼️";
@@ -525,7 +525,7 @@ function attIcon(type){
 function renderFeed(){
   var box = document.getElementById("msgs");
   var h = hooks[active];
-  var items = history.filter(function(m){ return m.ch === active; }).slice().reverse();
+  var items = posts.filter(function(m){ return m.ch === active; }).slice().reverse();
 
   var head = '<div class="jumb"><div class="ic">7</div>'
            + '<h2>' + esc(h ? (h.name || "চ্যানেল") : "CHEAT 777") + '</h2>'
@@ -793,7 +793,7 @@ async function send(){
 
     var data = await res.json().catch(function(){ return null; });
 
-    history.push({
+    posts.push({
       id: uid(), ts: Date.now(), ch: active,
       who: hook.username || "CHEAT 777",
       msgId: data ? data.id : null,
@@ -803,8 +803,8 @@ async function send(){
       }),
       rawNames: files.map(function(f){ return f.name; })
     });
-    if (history.length > 120) history = history.slice(-120);
-    set(K.m, history);
+    if (posts.length > 120) posts = posts.slice(-120);
+    set(K.m, posts);
 
     toast("পোস্ট হয়ে গেছে ✅", "ok");
     ta.value = ""; autosize();
@@ -824,7 +824,7 @@ async function send(){
 
 /* reuse a previous post's text + embed in the composer */
 function reuse(id){
-  var m = history.filter(function(x){ return x.id === id; })[0];
+  var m = posts.filter(function(x){ return x.id === id; })[0];
   if (!m) return;
   ta.value = m.text || ""; autosize();
   if (m.embed){
@@ -845,9 +845,9 @@ function reuse(id){
 /* delete the message on Discord itself, then drop it from the feed */
 async function delMsg(id){
   var idx = -1;
-  for (var i=0;i<history.length;i++){ if (history[i].id === id){ idx = i; break; } }
+  for (var i=0;i<posts.length;i++){ if (posts[i].id === id){ idx = i; break; } }
   if (idx < 0) return;
-  var m = history[idx];
+  var m = posts[idx];
   if (!m.msgId){ toast("Discord-এর মেসেজ আইডি নেই", "err"); return; }
   var hook = hooks[m.ch];
   if (!hook || !hook.url){ toast("ওয়েবহুক পাওয়া যায়নি", "err"); return; }
@@ -856,7 +856,7 @@ async function delMsg(id){
   try {
     var res = await fetch(hook.url + "/messages/" + m.msgId, { method:"DELETE" });
     if (res.ok || res.status === 204){
-      history.splice(idx,1); set(K.m, history); renderChannels();
+      posts.splice(idx,1); set(K.m, posts); renderChannels();
       toast("Discord থেকে মুছে ফেলা হয়েছে 🗑", "ok");
     } else {
       toast("মুছতে পারিনি (Discord " + res.status + ")", "err");
@@ -900,8 +900,8 @@ function saveHook(){
               avatar:document.getElementById("mAv").value.trim() };
   if (editIdx >= 0){
     var old = hooks[editIdx];
-    history.forEach(function(m){ if (m.ch === editIdx) m.who = rec.username || old.username || "CHEAT 777"; });
-    set(K.m, history);
+    posts.forEach(function(m){ if (m.ch === editIdx) m.who = rec.username || old.username || "CHEAT 777"; });
+    set(K.m, posts);
     hooks[editIdx] = rec; active = editIdx;
   } else {
     hooks.push(rec); active = hooks.length - 1;
@@ -911,9 +911,9 @@ function saveHook(){
 }
 function removeHook(i){
   if (!confirm('"' + (hooks[i].name || "চ্যানেল") + '" বাদ দেবে? (পোস্ট হিস্ট্রি থেকেও যাবে)')) return;
-  history = history.filter(function(m){ return m.ch !== i; });
-  history.forEach(function(m){ if (m.ch > i) m.ch -= 1; });
-  set(K.m, history);
+  posts = posts.filter(function(m){ return m.ch !== i; });
+  posts.forEach(function(m){ if (m.ch > i) m.ch -= 1; });
+  set(K.m, posts);
   hooks.splice(i,1);
   if (active >= hooks.length) active = Math.max(0, hooks.length - 1);
   saveHooks(); renderChannels();
