@@ -203,6 +203,31 @@ input,textarea,select{font-family:inherit;outline:0}
 .counter{font-size:11.5px;color:var(--txt3);margin-left:6px}
 .counter.over{color:var(--err)}
 
+/* destination picker — পাঠানোর আগে চ্যানেল বাছো */
+.destbar{display:flex;align-items:center;gap:9px;margin-bottom:9px;flex-wrap:wrap}
+.destlbl{
+  font-size:11px;font-weight:700;letter-spacing:.5px;color:var(--txt3);
+  text-transform:uppercase;flex:none
+}
+.destsel{
+  flex:1;min-width:170px;max-width:340px;background:#1e1f22;border:1px solid #1f2023;
+  color:var(--txt);border-radius:5px;padding:7px 9px;font-size:13.5px;cursor:pointer
+}
+.destsel:focus{border-color:var(--brand)}
+.destsel:disabled{opacity:.5;cursor:not-allowed}
+.destsel.all{border-color:var(--brand);box-shadow:0 0 0 1px var(--brand) inset;color:#fff}
+.destrow{display:flex;flex-wrap:wrap;gap:6px;flex:1;min-width:0;align-items:center}
+.desthint{font-size:11.5px;color:var(--txt3);flex:none}
+.destpick{
+  display:flex;align-items:center;gap:7px;padding:6px 11px;border-radius:14px;
+  background:var(--card);border:1px solid var(--line);font-size:13px;cursor:pointer;
+  user-select:none;transition:background .12s,border-color .12s
+}
+.destpick:hover{background:var(--active)}
+.destpick input{accent-color:var(--brand);width:15px;height:15px;cursor:pointer;pointer-events:none}
+.destpick.on{border-color:var(--brand);background:rgba(88,101,242,.18);color:#fff}
+.destpick .pc{color:var(--txt3);font-size:11.5px}
+
 /* embed builder */
 .ebuild{
   background:var(--card);border:1px solid var(--line);border-radius:8px;
@@ -354,6 +379,11 @@ input,textarea,select{font-family:inherit;outline:0}
       <button class="btn2" style="padding:5px 10px;font-size:12px" onclick="clearEmbed()">এমবেড মুছে ফেলো</button>
     </div>
 
+    <div class="destbar" id="destBar">
+      <span class="destlbl">কোথায় পাঠাবে</span>
+      <div class="destrow" id="destRow"></div>
+    </div>
+
     <div class="composer" style="position:relative">
       <div class="emoji" id="emojiBox"></div>
       <textarea id="ta" rows="1" placeholder="#চ্যানেলে পোস্ট করার জন্য লেখো..."></textarea>
@@ -409,22 +439,33 @@ input,textarea,select{font-family:inherit;outline:0}
 /* =================================================================
  *  Storage
  * ================================================================= */
-var K = { h:"c777_h2", a:"c777_a2", m:"c777_m2", t:"c777_t2", d:"c777_d2" };
-var hooks = [], active = 0, files = [], posts = [], templates = [], sending = false, editIdx = -1;
+var K = { h:"c777_h2", a:"c777_a2", m:"c777_m2", t:"c777_t2", d:"c777_d2", s:"c777_s2" };
+/* ডিফল্ট চ্যানেল — লোকাল (অফলাইন) কপিতে ওয়েবহুক বসানো থাকে, হোস্ট করা কপিতে খালি থাকে */
+var DEFAULT_HOOKS = [];
+var hooks = DEFAULT_HOOKS.slice(), active = 0, files = [], posts = [], templates = [], sending = false, editIdx = -1;
+/* targets = কোন কোন চ্যানেলে পাঠাবে (hook index array) */
+var targets = [];
 
 function get(k, fb){ try { var v = JSON.parse(localStorage.getItem(k)); return v===null?fb:v; } catch(e){ return fb; } }
 function set(k, v){ try { localStorage.setItem(k, JSON.stringify(v)); } catch(e){} }
 
 function load(){
-  hooks     = get(K.h, []) || [];
+  /* প্রথমবার (localStorage-এ কিছু নেই) হলে ডিফল্ট চ্যানেলটাই ব্যবহার হবে */
+  var stored = get(K.h, undefined);
+  hooks     = (stored === undefined) ? DEFAULT_HOOKS.slice() : (Array.isArray(stored) ? stored : []);
   posts   = get(K.m, []) || [];
   templates = get(K.t, []) || [];
   active    = parseInt(get(K.a, 0), 10);
   if (isNaN(active) || active < 0 || active >= hooks.length) active = 0;
+  targets = get(K.s, null);
+  if (!Array.isArray(targets)) targets = (hooks.length ? [active] : []);
+  /* মুছে যাওয়া/নতুন চ্যানেলের জন্য index ঠিক করা */
+  targets = targets.filter(function(i){ return typeof i === "number" && i >= 0 && i < hooks.length; });
+  if (!targets.length && hooks.length) targets = [active];
   var d = get(K.d, "");
   if (d) { document.getElementById("ta").value = d; }
 }
-function saveHooks(){ set(K.h, hooks); set(K.a, active); }
+function saveHooks(){ set(K.h, hooks); set(K.a, active); set(K.s, targets); }
 
 /* =================================================================
  *  Small helpers
@@ -491,6 +532,8 @@ function renderChannels(){
     box.innerHTML = '<div class="empty">এখনো কোনো চ্যানেল সেট হয়নি।<br><br>উপরের <b>＋</b> চেপে তোমার Discord ওয়েবহুক URL বসাও — তারপর এখানে পোস্ট করতে পারবে।</div>';
     document.getElementById("chName").textContent = "—";
     document.getElementById("chDesc").textContent = "কোনো চ্যানেল সেট হয়নি";
+    targets = [];
+    renderDest();
     renderFeed();
     return;
   }
@@ -507,9 +550,58 @@ function renderChannels(){
   document.getElementById("chName").textContent = hooks[active] ? (hooks[active].name || "") : "—";
   var n = posts.filter(function(m){ return m.ch === active; }).length;
   document.getElementById("chDesc").textContent = hooks[active] ? (n + " পোস্ট পাঠানো হয়েছে") : "";
+  renderDest();
   renderFeed();
 }
+/* সাইডবারের ক্লিক = শুধু ওই চ্যানেলের হিস্ট্রি দেখো; পাঠানোর চ্যানেল উপরের থেকে বাছো */
 function pick(i){ active = i; saveHooks(); renderChannels(); }
+
+/* =================================================================
+ *  Destination picker — পাঠানোর আগে কোন চ্যানেলে যাবে সেটা বাছো
+ * ================================================================= */
+function toggleTarget(i, forceOne){
+  if (forceOne){ targets = [i]; }
+  else {
+    var at = targets.indexOf(i);
+    if (at > -1){
+      if (targets.length > 1) targets.splice(at, 1);
+    } else {
+      targets.push(i);
+    }
+  }
+  saveHooks();
+  renderDest();
+}
+function setAllTargets(){
+  targets = hooks.map(function(_, i){ return i; });
+  saveHooks(); renderDest();
+}
+function clearTargets(){
+  targets = [];
+  saveHooks(); renderDest();
+}
+function renderDest(){
+  var box = document.getElementById("destRow");
+  if (!box) return;
+  if (!hooks.length){
+    box.innerHTML = '<span class="desthint">চ্যানেল সেট করলে এখানে বাছাই করা যাবে</span>';
+    return;
+  }
+  var html = "";
+  hooks.forEach(function(h, i){
+    var on = targets.indexOf(i) > -1;
+    html += '<label class="destpick' + (on ? " on" : "") + '" title="' + esc(h.url || "") + '">'
+          +   '<input type="checkbox" ' + (on ? "checked" : "")
+          +     ' onclick="event.preventDefault();toggleTarget(' + i + ')">'
+          +   '<span>#' + esc(h.name || ("চ্যানেল " + (i + 1))) + '</span>'
+          + '</label>';
+  });
+  html += '<button class="tmpl" onclick="setAllTargets()" title="সব চ্যানেলে একসাথে পাঠাও">সবগুলো</button>';
+  html += '<span class="desthint">' + (targets.length
+            ? targets.length + " চ্যানেলে যাবে"
+            : "কোনোটাই সিলেক্ট নেই") + '</span>';
+  box.innerHTML = html;
+}
 
 /* =================================================================
  *  Message feed (posts)
@@ -755,8 +847,7 @@ async function postTo(hook, opts){
 
 async function send(){
   if (sending) return;
-  var hook = hooks[active];
-  if (!hook || !hook.url){ toast("আগে একটা চ্যানেল সেট করো", "err"); openHook(-1); return; }
+  if (!targets.length){ toast("কোন চ্যানেলে পাঠাবে সেটা বাছো", "err"); return; }
 
   var text = ta.value.trim();
   var embed = readEmbed();
@@ -766,52 +857,74 @@ async function send(){
   var btn = document.getElementById("sendBtn");
   sending = true; btn.disabled = true; btn.innerHTML = '<span class="spin"></span>';
 
+  var okCount = 0, failCount = 0, firstErr = "";
+
   try {
-    var payload = {};
-    if (text) payload.content = text;
-    if (hook.username) payload.username = hook.username;
-    if (hook.avatar)   payload.avatar_url = hook.avatar;
-    if (embed) payload.embeds = [{
-      title: embed.title || undefined,
-      description: embed.desc || undefined,
-      url: embed.url || undefined,
-      color: parseInt((embed.color||"#5865f2").replace("#",""), 16),
-      image: embed.image ? { url: embed.image } : undefined,
-      thumbnail: embed.thumb ? { url: embed.thumb } : undefined,
-      footer: embed.foot ? { text: embed.foot } : undefined
-    }];
+    for (var ti = 0; ti < targets.length; ti++){
+      var idx = targets[ti];
+      var hook = hooks[idx];
+      if (!hook || !hook.url){ failCount++; if(!firstErr) firstErr = "চ্যানেল " + (idx+1) + " সেট হয়নি"; continue; }
 
-    var fd = new FormData();
-    fd.append("payload_json", JSON.stringify(payload));
-    files.forEach(function(f){ fd.append("files", f, f.name); });
+      var payload = {};
+      if (text) payload.content = text;
+      if (hook.username) payload.username = hook.username;
+      if (hook.avatar)   payload.avatar_url = hook.avatar;
+      if (embed) payload.embeds = [{
+        title: embed.title || undefined,
+        description: embed.desc || undefined,
+        url: embed.url || undefined,
+        color: parseInt((embed.color||"#5865f2").replace("#",""), 16),
+        image: embed.image ? { url: embed.image } : undefined,
+        thumbnail: embed.thumb ? { url: embed.thumb } : undefined,
+        footer: embed.foot ? { text: embed.foot } : undefined
+      }];
 
-    var res = await postTo(hook, { body: fd });
+      var fd = new FormData();
+      fd.append("payload_json", JSON.stringify(payload));
+      files.forEach(function(f){ fd.append("files", f, f.name); });
 
-    if (!res.ok){
-      var b = await res.text().catch(function(){ return ""; });
-      var why = res.status === 404
-        ? "ওয়েবহুক ভুল বা মুছে গেছে — সেটিংস থেকে URL বদলাও"
-        : "Discord " + res.status + " — " + b.slice(0,120);
-      toast("পোস্ট যায়নি: " + why, "err");
-      return;
+      var res = await postTo(hook, { body: fd });
+
+      if (!res.ok){
+        var b = await res.text().catch(function(){ return ""; });
+        var why = res.status === 404
+          ? "ওয়েবহুক ভুল বা মুছে গেছে — সেটিংস থেকে URL বদলাও"
+          : "Discord " + res.status + " — " + b.slice(0,90);
+        failCount++;
+        if (!firstErr) firstErr = (hooks[idx].name || "চ্যানেল " + (idx+1)) + ": " + why;
+        continue;
+      }
+
+      var data = await res.json().catch(function(){ return null; });
+
+      posts.push({
+        id: uid(), ts: Date.now(), ch: idx,
+        who: hook.username || "CHEAT 777",
+        msgId: data ? data.id : null,
+        text: text, embed: embed,
+        files: files.map(function(f){
+          return { name:f.name, size:f.size, type:f.type, url:"" };
+        }),
+        rawNames: files.map(function(f){ return f.name; })
+      });
+      okCount++;
     }
 
-    var data = await res.json().catch(function(){ return null; });
-
-    posts.push({
-      id: uid(), ts: Date.now(), ch: active,
-      who: hook.username || "CHEAT 777",
-      msgId: data ? data.id : null,
-      text: text, embed: embed,
-      files: files.map(function(f){
-        return { name:f.name, size:f.size, type:f.type, url:(/^image\//.test(f.type)?"":"") };
-      }),
-      rawNames: files.map(function(f){ return f.name; })
-    });
     if (posts.length > 120) posts = posts.slice(-120);
     set(K.m, posts);
 
-    toast("পোস্ট হয়ে গেছে ✅", "ok");
+    if (!okCount && failCount){
+      toast("পোস্ট যায়নি: " + firstErr, "err");
+      return;
+    }
+
+    toast((failCount
+      ? okCount + "/" + targets.length + " চ্যানেলে গেছে, বাকিটা যায়নি"
+      : (targets.length > 1
+          ? targets.length + " চ্যানেলে পোস্ট হয়ে গেছে ✅"
+          : "পোস্ট হয়ে গেছে ✅")), failCount ? "err" : "ok");
+    if (failCount && firstErr) toast(firstErr, "err");
+
     ta.value = ""; autosize();
     files = []; renderAtt(); clearEmbed();
     document.getElementById("ebuild").classList.remove("show");
@@ -908,8 +1021,10 @@ function saveHook(){
     posts.forEach(function(m){ if (m.ch === editIdx) m.who = rec.username || old.username || "CHEAT 777"; });
     set(K.m, posts);
     hooks[editIdx] = rec; active = editIdx;
+    if (targets.indexOf(editIdx) < 0) targets.push(editIdx);
   } else {
     hooks.push(rec); active = hooks.length - 1;
+    targets = [hooks.length - 1];   /* নতুন চ্যানেল বাছা থাকে */
   }
   saveHooks(); renderChannels(); closeModal();
   toast("সেভ হয়েছে ✅", "ok");
@@ -920,7 +1035,11 @@ function removeHook(i){
   posts.forEach(function(m){ if (m.ch > i) m.ch -= 1; });
   set(K.m, posts);
   hooks.splice(i,1);
+  targets = targets.filter(function(x){ return x !== i; })
+                    .map(function(x){ return x > i ? x - 1 : x; });
   if (active >= hooks.length) active = Math.max(0, hooks.length - 1);
+  if (active > i) active -= 1;
+  if (!targets.length && hooks.length) targets = [active];
   saveHooks(); renderChannels();
   toast("চ্যানেল বাদ দেওয়া হয়েছে", "ok");
 }
